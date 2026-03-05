@@ -1,0 +1,62 @@
+{
+  "name": "@adametherzlab/envcheck",
+  "version": "0.1.0",
+  "description": "Typed env var validator — fail fast on missing/invalid vars with type inference",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "test": "bun test",
+    "build": "tsc --build",
+    "prepublishOnly": "bun run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "^5.5.0"
+  },
+  "keywords": [
+    "typescript",
+    "bun",
+    "nodejs",
+    "environment",
+    "validation",
+    "config"
+  ],
+  "author": {
+    "name": "AdametherzLab",
+    "url": "https://github.com/AdametherzLab"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AdametherzLab/envcheck.git"
+  },
+  "homepage": "https://github.com/AdametherzLab/envcheck#readme",
+  "bugs": {
+    "url": "https://github.com/AdametherzLab/envcheck/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/AdametherzLab"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "sideEffects": false
+}
