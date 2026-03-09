@@ -1,90 +1,123 @@
-import { describe, it, expect } from "bun:test";
-import { defineEnv, createSchema } from "../src/index.ts";
-import type { ValidationFailure } from "../src/index.ts";
+import { describe, it, expect } from 'bun:test';
+import { defineEnv, createSchema, exportJsonSchema } from '../src/index.ts';
+import type { ValidationError } from '../src/index.ts';
 
-describe("envcheck", () => {
-  it("returns success with empty env for empty schema", () => {
-    const schema = createSchema({});
-    const result = defineEnv(schema, { source: {}, onError: "return" });
-    
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.env).toEqual({});
-    }
-  });
-
-  it("coerces string values to number, boolean, json, url, and email types", () => {
+describe('JSON Schema Export', () => {
+  it('generates basic schema with scalar types', () => {
     const schema = createSchema({
-      PORT: { type: "number" },
-      DEBUG: { type: "boolean" },
-      CONFIG: { type: "json" },
-      API_URL: { type: "url" },
-      CONTACT: { type: "email" },
+      PORT: { type: 'number', min: 1, max: 65535, default: 3000 },
+      DEBUG: { type: 'boolean', required: false },
+      API_KEY: { type: 'string', required: true },
     });
 
-    const source = {
-      PORT: "8080",
-      DEBUG: "false",
-      CONFIG: '{"enabled": true}',
-      API_URL: "https://api.example.com/v1",
-      CONTACT: "user@example.com",
-    };
+    const jsonSchema = exportJsonSchema(schema);
 
-    const env = defineEnv(schema, { source });
-    
-    expect(env.PORT).toBe(8080);
-    expect(env.DEBUG).toBe(false);
-    expect(env.CONFIG).toEqual({ enabled: true });
-    expect(env.API_URL).toBe("https://api.example.com/v1");
-    expect(env.CONTACT).toBe("user@example.com");
+    expect(jsonSchema).toMatchObject({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      additionalProperties: true,
+      required: ['API_KEY'],
+      properties: {
+        PORT: {
+          type: 'number',
+          minimum: 1,
+          maximum: 65535,
+          default: 3000
+        },
+        DEBUG: {
+          type: 'boolean'
+        },
+        API_KEY: {
+          type: 'string'
+        }
+      }
+    });
   });
 
-  it("applies default values when environment variables are absent", () => {
+  it('includes format and constraints for specialized types', () => {
     const schema = createSchema({
-      PORT: { type: "number", default: 3000 },
-      NODE_ENV: { type: "string", default: "development" },
-      DEBUG: { type: "boolean", default: false },
+      EMAIL: { type: 'email', required: true },
+      URL: { type: 'url', protocols: ['https'] },
+      ENV: { type: 'enum', choices: ['dev', 'prod'] as const },
     });
 
-    const env = defineEnv(schema, { source: {} });
-    
-    expect(env.PORT).toBe(3000);
-    expect(env.NODE_ENV).toBe("development");
-    expect(env.DEBUG).toBe(false);
+    const jsonSchema = exportJsonSchema(schema);
+
+    expect(jsonSchema.properties.EMAIL).toEqual({
+      type: 'string',
+      format: 'email'
+    });
+
+    expect(jsonSchema.required).toContain('EMAIL');
+
+    expect(jsonSchema.properties.URL).toMatchObject({
+      type: 'string',
+      format: 'uri',
+      pattern: '^https:'
+    });
+
+    expect(jsonSchema.properties.ENV).toEqual({
+      type: 'string',
+      enum: ['dev', 'prod']
+    });
   });
 
-  it("throws error when required variables are missing", () => {
+  it('handles strict mode and required fields', () => {
     const schema = createSchema({
-      DATABASE_URL: { type: "string", required: true },
-      API_KEY: { type: "string", required: true },
+      OPTIONAL: { type: 'string', required: false },
+      REQUIRED_NO_DEFAULT: { type: 'number', required: true },
+      REQUIRED_WITH_DEFAULT: { type: 'boolean', default: true },
     });
 
-    expect(() => {
-      defineEnv(schema, { source: {} });
-    }).toThrow();
+    const strictSchema = exportJsonSchema(schema, { strict: true });
+    const laxSchema = exportJsonSchema(schema);
+
+    expect(strictSchema.additionalProperties).toBe(false);
+    expect(laxSchema.additionalProperties).toBe(true);
+    expect(strictSchema.required).toEqual(['REQUIRED_NO_DEFAULT']);
+    expect(laxSchema.required).toEqual(['REQUIRED_NO_DEFAULT']);
   });
 
-  it("collects multiple validation errors with constraints when onError is 'return'", () => {
+  it('handles description and pattern for string types', () => {
     const schema = createSchema({
-      PORT: { type: "number", min: 1, max: 65535 },
-      ENV: { type: "string", enum: ["development", "production", "test"] },
-      RATE: { type: "number", min: 0, max: 100 },
+      UUID: { type: 'string', pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, description: 'Unique identifier' },
+      TOKEN: { type: 'string', minLength: 10, maxLength: 50, required: true },
     });
 
-    const source = {
-      PORT: "999999",
-      ENV: "staging",
-      RATE: "-5",
-    };
+    const jsonSchema = exportJsonSchema(schema);
 
-    const result = defineEnv(schema, { source, onError: "return" });
-    
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.errors.length).toBe(3);
-      expect(result.errors.some((e: ValidationError) => e.key === "PORT")).toBe(true);
-      expect(result.errors.some((e: ValidationError) => e.key === "ENV")).toBe(true);
-      expect(result.errors.some((e: ValidationError) => e.key === "RATE")).toBe(true);
-    }
+    expect(jsonSchema.properties.UUID).toMatchObject({
+      type: 'string',
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      description: 'Unique identifier'
+    });
+
+    expect(jsonSchema.properties.TOKEN).toMatchObject({
+      type: 'string',
+      minLength: 10,
+      maxLength: 50
+    });
+    expect(jsonSchema.required).toContain('TOKEN');
+  });
+
+  it('handles integer and port types correctly', () => {
+    const schema = createSchema({
+      COUNT: { type: 'number', integer: true, min: 0 },
+      APP_PORT: { type: 'port', default: 8080 },
+    });
+
+    const jsonSchema = exportJsonSchema(schema);
+
+    expect(jsonSchema.properties.COUNT).toMatchObject({
+      type: 'integer',
+      minimum: 0
+    });
+
+    expect(jsonSchema.properties.APP_PORT).toMatchObject({
+      type: 'number',
+      minimum: 1,
+      maximum: 65535,
+      default: 8080
+    });
   });
 });

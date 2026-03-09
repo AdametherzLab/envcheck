@@ -1,0 +1,28 @@
+# envcheck 🔐
+
+[![CI](https://github.com/AdametherzLab/envcheck/actions/workflows/ci.yml/badge.svg)](https://github.com/AdametherzLab/envcheck/actions) [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](https://www.typescriptlang.org/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## Features
+
+- ✅ **Type-safe by default** — Your env vars are fully typed with zero manual type definitions
+- 🚀 **Fail-fast validation** — Catches all missing/invalid variables at startup, not mid-request  
+- 🎯 **Zero dependencies** — Lightweight, using only Node.js/Bun built-ins
+- 🔧 **Rich type support** — Strings, numbers, booleans, enums, URLs, emails, and ports with intelligent coercion
+- 🛡️ **Aggregate error reporting** — See every validation failure at once, not one-by-one
+- 📝 **JSON Schema Export** — Generate JSON Schema for validation with other tools or documentation.
+
+## Installation
+
+bash
+# npm
+npm install @adametherzlab/envcheck
+
+# yarn  
+yarn add @adametherzlab/envcheck
+
+# pnpm
+pnpm add @adametherzlab/envcheck
+
+# bun
+bun add @adametherzlab/envcheck
+
