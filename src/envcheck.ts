@@ -121,6 +121,43 @@ export function exportJsonSchema(
 }
 
 /**
+ * Generates a .env.example file content based on the environment schema.
+ * Includes comments with descriptions and default values where available.
+ *
+ * @param schema The environment schema definition created using `createSchema`.
+ * @returns A string containing the generated .env.example content.
+ */
+export function generateEnvExample(schema: EnvSchema): string {
+  const lines: string[] = [];
+
+  for (const [varName, config] of Object.entries(schema)) {
+    const commentParts: string[] = [];
+    const isRequired = config.required === true || (config.required === undefined && config.default === undefined);
+
+    if (config.description) {
+      commentParts.push(config.description);
+    }
+    commentParts.push(isRequired ? 'Required' : 'Optional');
+    
+    if (config.default !== undefined) {
+      commentParts.push(`Default: ${config.default}`);
+    }
+
+    const commentLine = `# ${commentParts.join(', ')}`;
+    lines.push(commentLine);
+
+    let varLine = `${varName}=${config.default ?? ''}`;
+    if (!isRequired) {
+      varLine = `# ${varLine}`;
+    }
+    lines.push(varLine);
+    lines.push('');
+  }
+
+  return lines.join('\n').trim() + '\n';
+}
+
+/**
  * A utility function to define an environment schema with strong type inference.
  * This function primarily acts as a type helper and returns the schema object as is.
  *

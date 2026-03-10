@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { exportJsonSchema } from './envcheck';
+import { exportJsonSchema, generateEnvExample } from './envcheck';
 import { createSchema } from './index';
 import { parseArgs } from 'node:util';
 import { writeFileSync } from 'node:fs';
@@ -7,7 +7,8 @@ import { writeFileSync } from 'node:fs';
 const { values: args } = parseArgs({
   options: {
     input: { type: 'string', short: 'i', required: true },
-    output: { type: 'string', short: 'o', required: true },
+    output: { type: 'string', short: 'o' },
+    example: { type: 'string', short: 'e' },
     strict: { type: 'boolean', short: 's' },
     description: { type: 'string', short: 'd' }
   },
@@ -15,8 +16,8 @@ const { values: args } = parseArgs({
 });
 
 async function main() {
-  if (!args.input || !args.output) {
-    console.error('Missing required --input or --output arguments');
+  if (!args.input || (!args.output && !args.example)) {
+    console.error('Missing required arguments: --input and at least one of --output or --example');
     process.exit(1);
   }
 
@@ -24,13 +25,20 @@ async function main() {
     const userModule = await import(args.input);
     const schema = userModule.schema ?? createSchema(userModule.default);
     
-    const jsonSchema = exportJsonSchema(schema, {
-      strict: args.strict,
-      description: args.description
-    });
+    if (args.output) {
+      const jsonSchema = exportJsonSchema(schema, {
+        strict: args.strict,
+        description: args.description
+      });
+      writeFileSync(args.output, JSON.stringify(jsonSchema, null, 2));
+      console.log(`✅ Successfully generated JSON Schema at ${args.output}`);
+    }
 
-    writeFileSync(args.output, JSON.stringify(jsonSchema, null, 2));
-    console.log(`✅ Successfully generated JSON Schema at ${args.output}`);
+    if (args.example) {
+      const envExample = generateEnvExample(schema);
+      writeFileSync(args.example, envExample);
+      console.log(`✅ Successfully generated .env.example at ${args.example}`);
+    }
   } catch (error) {
     console.error('❌ Schema generation failed:', error instanceof Error ? error.message : error);
     process.exit(1);

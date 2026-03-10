@@ -22,4 +22,4 @@ export type {
   ParsedEnv,
 } from './types.js';
 
-export { createSchema, defineEnv, exportJsonSchema } from './envcheck.js';
+export { createSchema, defineEnv, exportJsonSchema, generateEnvExample } from './envcheck.js';

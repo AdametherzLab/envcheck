@@ -10,6 +10,7 @@
 - 🔧 **Rich type support** — Strings, numbers, booleans, enums, URLs, emails, and ports with intelligent coercion
 - 🛡️ **Aggregate error reporting** — See every validation failure at once, not one-by-one
 - 📦 **JSON Schema CLI** — Generate JSON Schema files directly from your TypeScript definitions
+- 🚀 **Automatic .env.example** — Generate developer-friendly .env.example files with documented variables
 
 ## Installation
 
@@ -20,54 +21,58 @@ npm install @adametherzlab/envcheck
 # yarn  
 yarn add @adametherzlab/envcheck
 
-# pnpm
-pnpm add @adametherzlab/envcheck
 
-# bun
-bun add @adametherzlab/envcheck
+## Usage
+
+
+import { createSchema, defineEnv } from '@adametherzlab/envcheck';
+
+const schema = createSchema({
+  PORT: { type: 'port', default: 3000 },
+  NODE_ENV: { type: 'enum', choices: ['development', 'production'] as const },
+  API_KEY: { type: 'string', required: true, minLength: 32 }
+});
+
+const result = defineEnv(schema);
+
+if (!result.success) {
+  console.error('Environment validation failed:', result.errors);
+  process.exit(1);
+}
+
+console.log('Server running on port', result.env.PORT);
 
 
 ## CLI Usage
 
-Generate JSON Schema from your TypeScript environment schema:
+Generate JSON Schema from your environment schema:
 
 bash
-envcheck generate-schema \
-  --input ./src/env-schema.ts \
-  --output env-schema.json
-
-# With strict mode and description
-envcheck generate-schema \
-  -i schema.ts \
-  -o schema.json \
-  --strict \
-  --description "Production Environment"
+bun ./src/cli.ts --input ./path/to/schema.ts --output env-schema.json
 
 
-## API Usage
+Generate .env.example file:
+
+bash
+bun ./src/cli.ts --input ./path/to/schema.ts --example .env.example
 
 
-import { createSchema, defineEnv, exportJsonSchema } from '@adametherzlab/envcheck';
+## Generating .env.example
 
-const schema = createSchema({
-  PORT: { type: 'port', default: 3000 },
-  NODE_ENV: { type: 'enum', choices: ['dev', 'prod'] as const },
-  API_KEY: { type: 'string', required: true }
-});
+The generated .env.example file includes:
+- All environment variables from your schema
+- Comments denoting required/optional status
+- Default values where specified
+- Optional variables commented out for easy configuration
 
-// Generate JSON Schema
-const jsonSchema = exportJsonSchema(schema, {
-  strict: true,
-  description: 'App Configuration'
-});
+Example output:
+env
+# Port number, Optional, Default: 3000
+# PORT=3000
 
-// Validate environment
-const result = defineEnv(schema);
-if (!result.success) {
-  console.error('Validation errors:', result.errors);
-  process.exit(1);
-}
+# API key, Required
+API_KEY=
 
-const { env } = result;
-console.log('Server port:', env.PORT);
+# Environment, Required
+NODE_ENV=
 
