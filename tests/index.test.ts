@@ -120,4 +120,26 @@ describe('JSON Schema Export', () => {
       default: 8080
     });
   });
+
+  it('generates schema with a global description', () => {
+    const schema = createSchema({
+      SERVICE_NAME: { type: 'string', default: 'MyService' },
+    });
+
+    const jsonSchema = exportJsonSchema(schema, { description: 'Configuration for MyService' });
+
+    expect(jsonSchema.description).toBe('Configuration for MyService');
+  });
+
+  it('handles empty schema', () => {
+    const schema = createSchema({});
+    const jsonSchema = exportJsonSchema(schema);
+
+    expect(jsonSchema).toEqual({
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {},
+      additionalProperties: true,
+    });
+  });
 });
