@@ -3,19 +3,25 @@ import { exportJsonSchema, generateEnvExample } from './envcheck';
 import { createSchema } from './index';
 import { parseArgs } from 'node:util';
 import { writeFileSync } from 'node:fs';
+import { runInteractive } from './cli/interactive';
 
 const { values: args } = parseArgs({
   options: {
-    input: { type: 'string', short: 'i', required: true },
+    input: { type: 'string', short: 'i' },
     output: { type: 'string', short: 'o' },
     example: { type: 'string', short: 'e' },
     strict: { type: 'boolean', short: 's' },
-    description: { type: 'string', short: 'd' }
+    description: { type: 'string', short: 'd' },
+    interactive: { type: 'boolean', short: 'c' }
   },
   allowPositionals: true
 });
 
 async function main() {
+  if (args.interactive || Object.keys(args).length === 0) {
+    return runInteractive();
+  }
+
   if (!args.input || (!args.output && !args.example)) {
     console.error('Missing required arguments: --input and at least one of --output or --example');
     process.exit(1);
